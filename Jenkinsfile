@@ -27,6 +27,24 @@ pipeline {
       }
     }
 
+    stage('SonarQube Analysis') {
+      steps {
+        dir('spring-boot-app') {
+          withSonarQubeEnv('sonarqube') {
+            sh 'mvn sonar:sonar'
+          }
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 10, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
     stage('Tests') {
       steps {
         dir('spring-boot-app') {
@@ -56,10 +74,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Jenkins CI completed successfully"
+      echo "✅ CI pipeline completed successfully"
     }
-     failure {
-      echo "❌ Jenkins CI failed"
+    failure {
+      echo "❌ CI pipeline failed"
     }
   }
 }
