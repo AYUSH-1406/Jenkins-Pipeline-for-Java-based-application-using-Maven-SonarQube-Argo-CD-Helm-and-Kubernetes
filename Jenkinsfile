@@ -53,18 +53,28 @@ pipeline {
 
     stage('Docker Build & Push') {
       steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-creds',
-          usernameVariable: 'DOCKER_USER',
-          passwordVariable: 'DOCKER_PASS'
-        )]) {
-          dir('spring-boot-app') {
-            sh '''
-              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-              docker build -t $IMAGE_NAME:$IMAGE_TAG .
-              docker push $IMAGE_NAME:$IMAGE_TAG
-            '''
-          }
+       withCredentials([usernamePassword(
+  credentialsId: 'github-creds',
+  usernameVariable: 'GIT_USER',
+  passwordVariable: 'GIT_TOKEN'
+)]) {
+    sh '''
+      git clone https://github.com/AYUSH-1406/spring-boot-manifests.git
+      cd spring-boot-manifests
+
+      git checkout main || git checkout -b main
+
+      cd base
+      sed -i s|image:.*|image: ayush1406/spring-boot-app:${IMAGE_TAG}| deployment.yaml
+
+      git add deployment.yaml
+      git commit -m "Update image to ${IMAGE_TAG}"
+
+      git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@github.com/AYUSH-1406/spring-boot-manifests.git
+      git push origin main
+    '''
+}
+
         }
       }
     }
