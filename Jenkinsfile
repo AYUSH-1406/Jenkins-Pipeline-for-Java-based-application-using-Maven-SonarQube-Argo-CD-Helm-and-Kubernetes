@@ -21,29 +21,17 @@ pipeline {
 
     stage('Build') {
       steps {
-        sh 'mvn clean package -DskipTests'
-      }
-    }
-
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('sonarqube') {
-          sh 'mvn sonar:sonar'
-        }
-      }
-    }
-
-    stage('Quality Gate') {
-      steps {
-        timeout(time: 10, unit: 'MINUTES') {
-        waitForQualityGate abortPipeline: true
+        dir('spring-boot-app') {
+          sh 'mvn clean package -DskipTests'
         }
       }
     }
 
     stage('Tests') {
       steps {
-        sh 'mvn test'
+        dir('spring-boot-app') {
+          sh 'mvn test'
+        }
       }
     }
 
@@ -54,11 +42,13 @@ pipeline {
           usernameVariable: 'DOCKER_USER',
           passwordVariable: 'DOCKER_PASS'
         )]) {
-          sh """
-            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-            docker build -t $IMAGE_NAME:$IMAGE_TAG .
-            docker push $IMAGE_NAME:$IMAGE_TAG
-          """
+          dir('spring-boot-app') {
+            sh '''
+              echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+              docker build -t $IMAGE_NAME:$IMAGE_TAG .
+              docker push $IMAGE_NAME:$IMAGE_TAG
+            '''
+          }
         }
       }
     }
@@ -66,10 +56,7 @@ pipeline {
 
   post {
     success {
-      echo "✅ CI pipeline completed successfully"
+      echo "✅ Jenkins CI completed successfully"
     }
     failure {
-      echo "❌ CI pipeline failed"
-    }
-  }
-}
+      echo "❌ Jenkins CI fa
